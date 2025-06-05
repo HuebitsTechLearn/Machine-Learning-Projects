@@ -1,0 +1,173 @@
+GitHub-ready structure for the Smart Resume Scanner with NLP + Streamlit project. It includes essential files and components to help you build and deploy the app:
+
+9.	Project Structure: smart-resume-scanner/
+10.	bash
+11.	CopyEdit
+12.	smart-resume-scanner/
+13.	├── app.py                     # Streamlit Web App
+14.	├── resume_parser.py          # Resume Parsing Logic (PDF reading, cleaning)
+15.	├── utils.py                  # Keyword extraction, similarity scoring
+16.	├── requirements.txt          # All required Python packages
+17.	├── skills.json               # Predefined skill set (Kaggle or custom list)
+18.	├── job_description.txt       # Sample job description input
+19.	├── sample_resumes/
+20.	│   ├── sample1.pdf
+21.	│   └── sample2.pdf
+22.	├── templates/
+23.	│   └── style.css             # Optional UI styling
+24.	└── README.md                 # Documentation and instructions
+
+
+GitHub-ready repo with README.md, requirements.txt, modular codebase, and clear folder structure is set up above.
+This is plug-and-play: drop in your sample resumes and you're good to go with streamlit run app.py.
+
+## Directory Structure:
+
+# smart_resume_scanner/
+# ├── app.py
+# ├── model/
+# │   └── skills.json
+# ├── utils/
+# │   ├── extract_text.py
+# │   ├── preprocess.py
+# │   ├── match_score.py
+# ├── resumes/
+# │   └── [sample resumes].pdf
+# ├── requirements.txt
+# └── README.md
+
+# app.py
+import streamlit as st
+import os
+import PyPDF2
+from utils.extract_text import extract_text_from_pdf
+from utils.preprocess import clean_text, extract_skills, named_entity_info
+from utils.match_score import calculate_similarity
+import json
+
+st.set_page_config(page_title="Smart Resume Scanner", layout="wide")
+st.title("Smart Resume Scanner")
+
+uploaded_file = st.file_uploader("Upload Resume (PDF only)", type=["pdf"])
+job_description = st.text_area("Paste Job Description")
+
+if uploaded_file and job_description:
+    raw_text = extract_text_from_pdf(uploaded_file)
+    cleaned_resume = clean_text(raw_text)
+    
+    with open("model/skills.json") as f:
+        skills_list = json.load(f)
+
+    extracted_skills = extract_skills(cleaned_resume, skills_list)
+    entities = named_entity_info(raw_text)
+    similarity_score = calculate_similarity(cleaned_resume, job_description)
+
+    st.subheader("Resume Analysis Results")
+    st.write(f"**Candidate Name:** {entities.get('Name', 'Not found')}")
+    st.write(f"**Email:** {entities.get('Email', 'Not found')}")
+    st.write(f"**Phone:** {entities.get('Phone', 'Not found')}")
+    st.write(f"**Skills:** {', '.join(extracted_skills) if extracted_skills else 'None found'}")
+    st.write(f"**Job Match Score:** {similarity_score:.2f}%")
+
+# utils/extract_text.py
+import PyPDF2
+
+def extract_text_from_pdf(pdf_file):
+    pdf_reader = PyPDF2.PdfReader(pdf_file)
+    text = ""
+    for page in pdf_reader.pages:
+        text += page.extract_text()
+    return text
+
+# utils/preprocess.py
+import re
+import spacy
+from nltk.corpus import stopwords
+
+nlp = spacy.load("en_core_web_sm")
+STOPWORDS = set(stopwords.words("english"))
+
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r"[^a-zA-Z\s]", "", text)
+    text = " ".join([word for word in text.split() if word not in STOPWORDS])
+    return text
+
+def extract_skills(text, skills_list):
+    text_words = set(text.split())
+    found_skills = [skill for skill in skills_list if skill.lower() in text_words]
+    return found_skills
+
+def named_entity_info(text):
+    info = {}
+    email = re.findall(r"[\w\.-]+@[\w\.-]+", text)
+    phone = re.findall(r"\+?\d{10,12}", text)
+    doc = nlp(text)
+    for ent in doc.ents:
+        if ent.label_ == "PERSON" and "Name" not in info:
+            info["Name"] = ent.text
+    info["Email"] = email[0] if email else None
+    info["Phone"] = phone[0] if phone else None
+    return info
+
+# utils/match_score.py
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+def calculate_similarity(resume_text, job_desc):
+    tfidf = TfidfVectorizer()
+    tfidf_matrix = tfidf.fit_transform([resume_text, job_desc])
+    score = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0] * 100
+    return score
+
+# model/skills.json
+[
+  "python", "java", "machine learning", "nlp", "data analysis",
+  "sql", "communication", "project management", "deep learning",
+  "tensorflow", "keras", "pandas", "numpy", "flask"
+]
+
+# requirements.txt
+streamlit
+PyPDF2
+scikit-learn
+spacy
+nltk
+
+# README.md
+# Smart Resume Scanner
+
+This project builds an AI-powered Resume Scanner that analyzes resume content, extracts key information, compares it to a job description, and scores it based on skill match.
+
+## Features
+- Extract name, email, and phone number using NLP and regex
+- Match resume to job description using TF-IDF + cosine similarity
+- Streamlit UI for real-time interaction
+- Skills extraction with custom skill set
+
+## Setup
+```bash
+pip install -r requirements.txt
+python -m nltk.downloader stopwords
+python -m spacy download en_core_web_sm
+streamlit run app.py
+```
+
+## File Structure
+```
+smart_resume_scanner/
+├── app.py
+├── model/
+│   └── skills.json
+├── utils/
+│   ├── extract_text.py
+│   ├── preprocess.py
+│   ├── match_score.py
+├── resumes/
+│   └── [sample resumes].pdf
+├── requirements.txt
+└── README.md
+```
+
+---
+
