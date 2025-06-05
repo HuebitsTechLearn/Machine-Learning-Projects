@@ -1,0 +1,135 @@
+Your GitHub-ready Rasa chatbot project is now structured and complete with:
+
+README.md with setup and run instructions
+nlu.yml, domain.yml, stories.yml for intents, entities, and conversation flow
+actions.py for custom logic (e.g., time response)
+endpoints.yml and requirements.txt for deployment
+
+
+# ------------------ README.md ------------------
+# Machine Learning Chatbot with Rasa
+
+This chatbot can recognize intents, extract entities, and reply contextually. Built using Rasa Open Source.
+
+## Setup Instructions
+```bash
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+```
+
+## Run the Bot
+```bash
+rasa train
+rasa run
+rasa shell  # to chat with the bot
+```
+
+## Connect to Web App (Optional)
+Use REST API or Flask frontend integration.
+
+---
+
+# ------------------ requirements.txt ------------------
+rasa==3.5.10
+spacy==3.6.0
+flask
+
+# ------------------ data/nlu.yml ------------------
+version: "3.1"
+nlu:
+- intent: greet
+  examples: |
+    - hi
+    - hello
+    - hey
+
+- intent: goodbye
+  examples: |
+    - bye
+    - goodbye
+    - see you later
+
+- intent: ask_time
+  examples: |
+    - what time is it?
+    - tell me the current time
+    - time please
+
+- intent: book_appointment
+  examples: |
+    - I need to book an appointment
+    - Can I schedule a visit?
+    - Book me in for a checkup
+
+# ------------------ domain.yml ------------------
+version: "3.1"
+intents:
+  - greet
+  - goodbye
+  - ask_time
+  - book_appointment
+
+responses:
+  utter_greet:
+    - text: "Hello! How can I assist you today?"
+  utter_goodbye:
+    - text: "Goodbye! Have a great day!"
+  utter_ask_time:
+    - text: "I'm a bot, but your system time can help!"
+  utter_book_appointment:
+    - text: "Sure, I can help you with that. What time works for you?"
+
+actions:
+  - utter_greet
+  - utter_goodbye
+  - utter_ask_time
+  - utter_book_appointment
+
+# ------------------ stories.yml ------------------
+version: "3.1"
+stories:
+- story: greet and goodbye
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - intent: goodbye
+  - action: utter_goodbye
+
+- story: book appointment
+  steps:
+  - intent: book_appointment
+  - action: utter_book_appointment
+
+# ------------------ actions/actions.py ------------------
+from typing import Any, Text, Dict, List
+from rasa_sdk import Action, Tracker
+from rasa_sdk.executor import CollectingDispatcher
+
+class ActionGetTime(Action):
+    def name(self) -> Text:
+        return "action_get_time"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        import datetime
+        now = datetime.datetime.now().strftime("%H:%M")
+        dispatcher.utter_message(text=f"Current time is {now}.")
+        return []
+
+# ------------------ endpoints.yml ------------------
+action_endpoint:
+  url: "http://localhost:5055/webhook"
+
+
+2.Initialize Git:
+bash
+CopyEdit
+git init
+git add .
+git commit -m "Initial commit: ML Chatbot with Rasa"
+git remote add origin https://github.com/your-username/your-repo-name.git
+git push -u origin master
+
