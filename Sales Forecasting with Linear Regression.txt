@@ -1,0 +1,155 @@
+Your GitHub-ready repo structure for Sales Forecasting with Linear Regression is set. It includes:
+Modular project layout
+Polished README.md
+Complete training + prediction pipeline
+Optional Streamlit dashboard
+
+
+# Sales Forecasting with Linear Regression
+
+## Project Structure
+```
+sales_forecasting/
+├── data/
+│   └── sales_data.csv
+├── forecast_model.py
+├── forecast_streamlit.py (optional)
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## requirements.txt
+```
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+streamlit
+```
+
+---
+
+## forecast_model.py
+```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.preprocessing import PolynomialFeatures
+from datetime import timedelta
+
+# Load data
+df = pd.read_csv('data/sales_data.csv')
+df['Date'] = pd.to_datetime(df['Date'])
+df = df.sort_values('Date')
+
+# Aggregate monthly
+monthly_sales = df.groupby(pd.Grouper(key='Date', freq='M'))['Sales'].sum().reset_index()
+monthly_sales['MonthIndex'] = np.arange(len(monthly_sales))
+
+# Split data
+X = monthly_sales[['MonthIndex']]
+y = monthly_sales['Sales']
+
+# Linear Regression
+lr = LinearRegression()
+lr.fit(X, y)
+predictions = lr.predict(X)
+
+# Evaluation
+mae = mean_absolute_error(y, predictions)
+rmse = np.sqrt(mean_squared_error(y, predictions))
+r2 = r2_score(y, predictions)
+
+print(f'MAE: {mae:.2f}, RMSE: {rmse:.2f}, R²: {r2:.2f}')
+
+# Forecast
+future_months = 12
+future_index = np.arange(len(X), len(X) + future_months).reshape(-1, 1)
+future_preds = lr.predict(future_index)
+
+# Plot
+plt.figure(figsize=(10, 6))
+sns.lineplot(x='Date', y='Sales', data=monthly_sales, label='Actual')
+plt.plot(pd.date_range(start=monthly_sales['Date'].iloc[-1] + timedelta(days=30), periods=future_months, freq='M'), future_preds, label='Forecast', linestyle='--')
+plt.title('Sales Forecast')
+plt.xlabel('Date')
+plt.ylabel('Sales')
+plt.legend()
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+## forecast_streamlit.py (optional UI)
+```python
+import streamlit as st
+import pandas as pd
+from forecast_model import lr, future_index, future_preds
+
+st.title('Sales Forecasting Dashboard')
+st.subheader('Predicted Sales for Next 12 Months')
+
+dates = pd.date_range(start=pd.to_datetime('today'), periods=len(future_preds), freq='M')
+forecast_df = pd.DataFrame({
+    'Date': dates,
+    'Predicted Sales': future_preds
+})
+
+st.dataframe(forecast_df)
+st.line_chart(forecast_df.set_index('Date'))
+```
+
+---
+
+## README.md
+```markdown
+# Sales Forecasting with Linear Regression
+
+This project predicts future sales using linear regression models trained on historical monthly sales data.
+
+## Use Cases
+- Business operations
+- Retail sales planning
+- Budget forecasting dashboards
+
+## Requirements
+```bash
+pip install -r requirements.txt
+```
+
+## Run Forecast
+```bash
+python forecast_model.py
+```
+
+## Run Dashboard (Optional)
+```bash
+streamlit run forecast_streamlit.py
+```
+
+## Sample Data Format (sales_data.csv)
+```
+Date,Sales
+2022-01-01,2345
+2022-02-01,2398
+...
+```
+
+## Metrics
+- MAE
+- RMSE
+- R² Score
+
+---
+
+> Created for ML learners, analysts, and retail data teams.
+```
+
+
