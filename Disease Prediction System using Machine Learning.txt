@@ -1,0 +1,148 @@
+# Disease Prediction System using Machine Learning
+
+## Project Structure
+```
+disease_prediction/
+├── data/
+│   └── diabetes.csv  # Or heart_disease.csv
+├── disease_model.py
+├── disease_app.py (optional - Streamlit UI)
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## requirements.txt
+```
+pandas
+numpy
+scikit-learn
+streamlit
+matplotlib
+seaborn
+```
+
+---
+
+## disease_model.py
+```python
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+import joblib
+
+# Load dataset
+df = pd.read_csv('data/diabetes.csv')  # change as needed
+
+# Feature/Target split
+X = df.drop('Outcome', axis=1)  # 'Outcome' is target for diabetes
+y = df['Outcome']
+
+# Scaling
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Train/test split
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# Train model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Evaluate
+y_pred = model.predict(X_test)
+print(confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+print("ROC-AUC:", roc_auc_score(y_test, y_pred))
+
+# Save model & scaler
+joblib.dump(model, 'disease_model.pkl')
+joblib.dump(scaler, 'scaler.pkl')
+```
+
+---
+
+## disease_app.py (Streamlit)
+```python
+import streamlit as st
+import numpy as np
+import joblib
+
+st.title("Disease Prediction System")
+
+model = joblib.load('disease_model.pkl')
+scaler = joblib.load('scaler.pkl')
+
+st.subheader("Enter Patient Data:")
+
+pregnancies = st.number_input("Pregnancies", 0, 20)
+glucose = st.number_input("Glucose", 0, 200)
+blood_pressure = st.number_input("Blood Pressure", 0, 150)
+skin_thickness = st.number_input("Skin Thickness", 0, 100)
+insulin = st.number_input("Insulin", 0.0, 900.0)
+bmi = st.number_input("BMI", 0.0, 70.0)
+diabetes_pedigree = st.number_input("Diabetes Pedigree Function", 0.0, 3.0)
+age = st.number_input("Age", 10, 100)
+
+input_data = np.array([[pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree, age]])
+input_scaled = scaler.transform(input_data)
+
+if st.button("Predict"):
+    result = model.predict(input_scaled)[0]
+    st.success("Prediction: {}".format("Positive" if result == 1 else "Negative"))
+```
+
+---
+
+## README.md
+```markdown
+# Disease Prediction System
+
+This project uses ML models to predict diseases like diabetes using health metrics.
+
+## Features
+- Train Random Forest or Logistic Regression on medical data
+- Evaluate using ROC, Precision, Recall
+- Predict via Streamlit form
+
+## Setup
+```bash
+pip install -r requirements.txt
+```
+
+## Run Model
+```bash
+python disease_model.py
+```
+
+## Launch App
+```bash
+streamlit run disease_app.py
+```
+
+## Sample Input Columns
+- Pregnancies
+- Glucose
+- BloodPressure
+- SkinThickness
+- Insulin
+- BMI
+- DiabetesPedigreeFunction
+- Age
+
+## Output
+- Confusion Matrix
+- ROC-AUC
+- Classification Report
+
+---
+
+> Built for medical AI projects, student portfolios, and real-world diagnostics.
+
+
+
