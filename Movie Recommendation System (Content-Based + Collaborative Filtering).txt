@@ -1,0 +1,103 @@
+Here's your complete Python code for the Movie Recommendation System using:
+Content-Based Filtering (TF-IDF + Cosine Similarity)
+Collaborative Filtering (Surprise SVD)
+Optional: UI with Streamlit
+________________________________________
+Step-by-Step Full Code
+1. Install Required Libraries
+pip install pandas numpy scikit-learn scikit-surprise streamlit
+2. Python Script (save as movie_recommender.py)
+import pandas as pd
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from surprise import SVD, Dataset, Reader
+from surprise.model_selection import train_test_split
+from surprise.accuracy import rmse
+
+# Load MovieLens Dataset
+movies_url = "https://raw.githubusercontent.com/singhakashh/Movie-Recommendation-System-Tutorial/master/movies.csv"
+ratings_url = "https://raw.githubusercontent.com/singhakashh/Movie-Recommendation-System-Tutorial/master/ratings.csv"
+
+movies = pd.read_csv(movies_url)
+ratings = pd.read_csv(ratings_url)
+
+# ---------- CONTENT-BASED FILTERING ---------- #
+def build_content_model():
+    movies['genres'] = movies['genres'].fillna('')
+    tfidf = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = tfidf.fit_transform(movies['genres'])
+    cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+    indices = pd.Series(movies.index, index=movies['title']).drop_duplicates()
+    return cosine_sim, indices
+
+cosine_sim, indices = build_content_model()
+
+def get_content_recommendations(title, num_recommendations=10):
+    idx = indices.get(title)
+    if idx is None:
+        return f"Movie '{title}' not found."
+    sim_scores = list(enumerate(cosine_sim[idx]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    sim_scores = sim_scores[1:num_recommendations+1]
+    movie_indices = [i[0] for i in sim_scores]
+    return movies['title'].iloc[movie_indices].tolist()
+
+# ---------- COLLABORATIVE FILTERING ---------- #
+def train_collaborative_model():
+    reader = Reader(rating_scale=(0.5, 5.0))
+    data = Dataset.load_from_df(ratings[['userId', 'movieId', 'rating']], reader)
+    trainset, testset = train_test_split(data, test_size=0.2)
+    algo = SVD()
+    algo.fit(trainset)
+    predictions = algo.test(testset)
+    print("Collaborative RMSE:", rmse(predictions))
+    return algo
+
+algo = train_collaborative_model()
+
+def get_collaborative_recommendations(user_id, num_recommendations=10):
+    movie_ids = movies['movieId'].tolist()
+    user_rated = ratings[ratings['userId'] == user_id]['movieId'].tolist()
+    unseen = list(set(movie_ids) - set(user_rated))
+    predictions = [algo.predict(user_id, mid) for mid in unseen]
+    top_predictions = sorted(predictions, key=lambda x: x.est, reverse=True)[:num_recommendations]
+    top_movie_ids = [pred.iid for pred in top_predictions]
+    return movies[movies['movieId'].isin(top_movie_ids)]['title'].tolist()
+
+# ---------- STREAMLIT APP (OPTIONAL) ---------- #
+def run_app():
+    import streamlit as st
+    st.title("Movie Recommender System")
+    mode = st.radio("Choose Recommendation Type:", ['Content-Based', 'Collaborative Filtering'])
+
+    if mode == 'Content-Based':
+        movie_name = st.text_input("Enter a movie you liked:")
+        if st.button("Recommend"):
+            recommendations = get_content_recommendations(movie_name)
+            if isinstance(recommendations, str):
+                st.error(recommendations)
+            else:
+                st.success("Recommended Movies:")
+                for movie in recommendations:
+                    st.write(movie)
+
+    if mode == 'Collaborative Filtering':
+        user_id = st.number_input("Enter your User ID:", min_value=1, max_value=ratings['userId'].max())
+        if st.button("Recommend for Me"):
+            recommendations = get_collaborative_recommendations(int(user_id))
+            st.success("Top Picks for You:")
+            for movie in recommendations:
+                st.write(movie)
+
+# Uncomment the following line to run as a script
+# run_app()
+3) To Run Streamlit UI
+
+ streamlit run movie_recommender.py
+
+
+
+
+
+
